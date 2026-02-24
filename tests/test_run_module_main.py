@@ -1,0 +1,35 @@
+# tests/test_run_module_main.py
+import runpy
+import builtins
+import pytest
+from pathlib import Path
+
+def test_run_module_main(monkeypatch, tmp_path):
+    """
+    Execute the calculator_repl module as __main__ in-process. We monkeypatch
+    input() so the REPL loop receives a sequence of commands and then exits.
+    This exercises the module-level '__main__' entrypoint and many REPL branches
+    under the pytest-cov measured process.
+    """
+    # Prepare inputs to exercise many branches then exit
+    seq = iter([
+        "",               # empty -> skipped
+        "help",           # prints welcome
+        "unknown 1 2",    # unknown operation -> error branch
+        "add 1 2",        # performs an operation
+        "history",        # prints history
+        "save",           # save branch
+        "exit"            # exit -> should raise SystemExit
+    ])
+
+    monkeypatch.setenv("HISTORY_CSV_PATH", str(tmp_path / "history.csv"))
+    monkeypatch.setenv("AUTO_SAVE", "True")
+
+    monkeypatch.setattr(builtins, "input", lambda prompt="": next(seq))
+
+    # Running as __main__ will call repl(); it will sys.exit on "exit" -> catch SystemExit
+    with pytest.raises(SystemExit):
+        runpy.run_module("app.calculator_repl", run_name="__main__")
+
+    # Ensure history file was created by AUTO_SAVE=True
+    assert Path(tmp_path / "history.csv").exists()
