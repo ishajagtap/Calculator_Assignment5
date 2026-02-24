@@ -99,6 +99,4 @@ app/                # application modules
 
 Contributions are welcome!  Please fork the repo and open a pull request with tests for any new behavior.
 
-## License
 
-This project is provided for educational purposes.  (Add license details here if applicable.)
